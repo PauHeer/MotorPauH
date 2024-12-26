@@ -1,47 +1,43 @@
 # SpectraEngine
 
-## Description
-**SpectraEngine** is a 3D game engine developed in **C++** with **OpenGL**, currently capable of rendering geometry with a range of controls and information displays.
+## Descripción
+Es un motor de videojuegos 3D en desarrollo en **C++** con **OpenGL**, capaz de renderizar geometría con diferentes controles y pantallas de información.
 
-The project is under active development, and the code is available on [GitHub](https://github.com/CITM-UPC/SpectraEngine).
+## Miembros del equipo
+- [Pau Hernández Vázzquez](https://github.com/pauheer)
 
-## Team Members
-- [Guillem Alqueza Mayench](https://github.com/guillemalqueza)
-- [Miguel Iglesias Abarca](https://github.com/MiguelIglesiasAbarca)
-- [Lluc Cid](https://github.com/Lluccib)
+## Controles del visor
+- **Clic derecho**: mover la vista.
+- **Clic derecho + WASD**: volar alrededor.
+- **Alt + clic derecho o rueda del mouse**: acercar o alejar.
+- **Alt + clic izquierdo**: orbita la cámara alrededor.
+- **Alt + rueda del mouse**: mover la cámara.
+- **F**: encuadrar el objeto seleccionado.
 
-## Viewer Controls
-- **Right-click**: Move the current view.
-- **Right-click + WASD**: Fly around the scene.
-- **Alt + Right-click or Mouse Wheel**: Zoom in or out.
-- **Alt + Left-click**: Orbit the camera around a pivot point.
-- **Alt + Mouse Wheel**: Pan the camera.
-- **F**: Frame the selected object.
+## Características
+- **Importación de modelos y texturas**: importar modelos en formato FBX y texturas en PNG y DDS.
+- **Importación de texturas**: admite los formatos de texturas PNG y DDS.
+- **Arrastrar y soltar**: permite importar archivos arrastrándolos directamente.
+- **Controles de transformación**: aplica transformaciones como posición, rotación y escala a los modelos.
+- **Sistema de registro**: proporciona un registro detallado.
+- **Modos de sombreado**: cambia entre las opciones Sombreado, Estructura alámbrica y Estructura alámbrica sombreada.
+- **Monitor del motor**: visualiza la información de monitoreo.
+- **Biblioteca de archivos personalizados**: administra archivos con un formato de archivo personalizado.
 
-## Features
-- **Model Import**: Import models in FBX format.
-- **Texture Import**: Supports PNG and DDS texture formats.
-- **Drag and Drop**: Allows importing files by dragging them directly.
-- **Transform Controls**: Apply transformations like position, rotation, and scale to models.
-- **Logging System**: Provides detailed logging.
-- **Custom File Library**: Manage files with a custom file format.
-- **Shading Modes**: Swap between Shaded, Wireframe & Shaded Wireframe options.
-- **Engine Monitor**: Visualize monitoring information.
+## Paneles
+- **Jerarquía**: muestra los objetos del juego presentes actualmente en la escena. Incluye una función de búsqueda para localizar objetos específicos del juego y brinda opciones para crear objetos de juego vacíos y formas primitivas básicas.
+- **Inspector**: permite ver y editar las propiedades de un objeto de juego seleccionado actualmente, como opciones de transformación, renderizador de malla y material.
+- **Escena**: permite visualizar e interactuar con el mundo del editor.
+- **Proyecto**: permite acceder a varias carpetas de proyectos, administrar archivos e importar activos. Muestra todos los activos dentro del proyecto, incluidos modelos, texturas y otros recursos del motor.
+- **Consola**: permite ver errores, advertencias e información relacionada con el motor.
+- **Preferencias**: ofrece configuraciones para el usuario, incluidas opciones de pantalla, cuadrícula y renderizado.
+- **Rendimiento**: muestra información sobre el rendimiento del motor e informacion de los recursos del sistema.
+- **Acerca de**: muestra información básica sobre el motor.
 
-## Panels
-- **Hierarchy**: Displays all game objects currently present in the scene. Includes a search feature to locate specific game objects and provides options to create empty game objects and basic primitive shapes.
-- **Inspector**: Allows viewing and editing the properties of a currently selected game object, such as transform, mesh renderer, and material options.
-- **Scene**: Allows visualizing and interacting with the world you create in the editor.
-- **Project**: Access various project folders, manage files, and import assets. Displays all assets within the project, including models, textures, and other engine resources.
-- **Console**: View errors, warnings, and information related to the engine. Allows filtering by type and clearing the console.
-- **Preferences**: Offers settings for the user, including screen, grid, and rendering options.
-- **Performance**: Displays information about engine performance and its impact on system resources.
-- **About**: Displays basic information about the engine.
-
-## Libraries and Dependencies
-- [SDL2](https://github.com/libsdl-org/SDL): Cross-platform development library.
-- [OpenGL](https://www.opengl.org/): Graphics API for rendering graphics.
-- [ImGui](https://github.com/ocornut/imgui): Immediate mode GUI for C++.
-- [GLM](https://github.com/g-truc/glm): C++ mathematics library for graphics software based on OpenGL.
-- [Assimp](https://github.com/assimp/assimp): Library to load various 3D file formats into a shared, in-memory immediate format.
-- [DeviL](https://github.com/DentonW/DevIL): Image library supporting loading, saving, and manipulating various image formats.
+## Bibliotecas y dependencias
+- [SDL2](https://github.com/libsdl-org/SDL): biblioteca de desarrollo multiplataforma.
+- [OpenGL](https://www.opengl.org/): API de gráficos para renderizar gráficos.
+- [ImGui](https://github.com/ocornut/imgui): interfaz gráfica de usuario de modo inmediato para C++.
+- [GLM](https://github.com/g-truc/glm): biblioteca matemática de C++ para software de gráficos basado en OpenGL.
+- [Assimp](https://github.com/assimp/assimp): biblioteca para cargar varios formatos de archivos 3D en un formato inmediato compartido en memoria.
+- [DeviL](https://github.com/DentonW/DevIL): biblioteca de imágenes que permite cargar, guardar y manipular varios formatos de imágenes.
