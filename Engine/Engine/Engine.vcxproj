@@ -132,7 +132,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AboutWindow.cpp" />
     <ClCompile Include="App.cpp" />
     <ClCompile Include="Component.cpp" />
     <ClCompile Include="ComponentMaterial.cpp" />
@@ -165,7 +164,6 @@
     <ClCompile Include="Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AboutWindow.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="Component.h" />
     <ClInclude Include="ComponentMaterial.h" />

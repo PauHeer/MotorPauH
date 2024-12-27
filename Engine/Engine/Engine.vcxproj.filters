@@ -93,9 +93,6 @@
     <ClCompile Include="PreferencesWindow.cpp">
       <Filter>Sources\Modules\EditorWindows</Filter>
     </ClCompile>
-    <ClCompile Include="AboutWindow.cpp">
-      <Filter>Sources\Modules\EditorWindows</Filter>
-    </ClCompile>
     <ClCompile Include="SceneWindow.cpp">
       <Filter>Sources\Modules\EditorWindows</Filter>
     </ClCompile>
@@ -192,9 +189,6 @@
       <Filter>Sources\Modules\EditorWindows</Filter>
     </ClInclude>
     <ClInclude Include="SceneWindow.h">
-      <Filter>Sources\Modules\EditorWindows</Filter>
-    </ClInclude>
-    <ClInclude Include="AboutWindow.h">
       <Filter>Sources\Modules\EditorWindows</Filter>
     </ClInclude>
     <ClInclude Include="ModuleFileSystem.h">
