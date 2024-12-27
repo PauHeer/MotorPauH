@@ -123,7 +123,7 @@ bool ModuleRenderer3D::Awake()
     if (validSystem)
     {
         LOG(LogType::LOG_INFO, "System validation passed, attempting to load StreetEnvironment_V01.fbx");
-        std::string modelPath = "Assets/Models/BakerHouse.fbx";
+        std::string modelPath = "Assets/Models/StreetEnvironment_V01.fbx";
 
         LOG(LogType::LOG_INFO, "Checking if file exists: %s", modelPath.c_str());
         bool fileExists = app->fileSystem->FileExists(modelPath);
