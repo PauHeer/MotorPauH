@@ -5,6 +5,33 @@
 #include <iostream>
 #include <fstream>
 
+bool EnsureDirectoryExists(const std::string& path) {
+	try {
+		if (!std::filesystem::exists(path)) {
+			if (!std::filesystem::create_directories(path)) {
+				LOG(LogType::LOG_ERROR, "Failed to create directory: %s", path.c_str());
+				return false;
+			}
+			LOG(LogType::LOG_INFO, "Created directory: %s", path.c_str());
+		}
+		return true;
+	}
+	catch (const std::filesystem::filesystem_error& e) {
+		LOG(LogType::LOG_ERROR, "Filesystem error: %s", e.what());
+		return false;
+	}
+}
+
+// Llama a esto al inicio de tu aplicación
+void CreateRequiredDirectories() {
+	EnsureDirectoryExists("Assets");
+	EnsureDirectoryExists("Assets/Models");
+	EnsureDirectoryExists("Assets/Textures");
+	EnsureDirectoryExists("Library");
+	EnsureDirectoryExists("Library/Models");
+	EnsureDirectoryExists("Library/Meshes");
+}
+
 ModelImporter::ModelImporter()
 {
 	struct aiLogStream stream;
@@ -19,21 +46,31 @@ ModelImporter::~ModelImporter()
 
 bool ModelImporter::SaveModel(Resource* resource)
 {
-	const char* path = resource->GetAssetFileDir().c_str();
-
-	const aiScene* scene = aiImportFile(path, aiProcessPreset_TargetRealtime_MaxQuality);
-	if (scene == nullptr)
-	{
-		LOG(LogType::LOG_ERROR, "Error loading scene %s", path);
+	if (!resource) {
+		LOG(LogType::LOG_ERROR, "Invalid resource provided");
 		return false;
 	}
 
-	std::string fileName = path;
+	const char* assetPath = resource->GetAssetFileDir().c_str();
+	if (!assetPath || strlen(assetPath) == 0) {
+		LOG(LogType::LOG_ERROR, "Invalid path provided");
+		return false;
+	}
+
+	LOG(LogType::LOG_INFO, "Attempting to load model from: %s", assetPath);
+
+	const aiScene* importedScene = aiImportFile(assetPath, aiProcessPreset_TargetRealtime_MaxQuality);
+	if (importedScene == nullptr) {
+		LOG(LogType::LOG_ERROR, "Error loading scene %s: %s", assetPath, aiGetErrorString());
+		return false;
+	}
+
+	std::string fileName = assetPath;
 	fileName = fileName.substr(fileName.find_last_of("/\\") + 1);
 	fileName = fileName.substr(0, fileName.find_last_of("."));
 
-	SaveModelToCustomFile(scene, fileName);
-	aiReleaseImport(scene);
+	SaveModelToCustomFile(importedScene, fileName);
+	aiReleaseImport(importedScene);
 
 	LOG(LogType::LOG_INFO, "%s model Saved", fileName.c_str());
 	return true;
@@ -66,6 +103,13 @@ bool ModelImporter::LoadModel(Resource* resource, GameObject* root)
 
 void ModelImporter::SaveMeshToCustomFile(aiMesh* newMesh, const aiScene* scene, const std::string& filePath)
 {
+	// Asegurar que el directorio del archivo existe
+	std::string directory = filePath.substr(0, filePath.find_last_of("/\\"));
+	if (!EnsureDirectoryExists(directory)) {
+		LOG(LogType::LOG_ERROR, "Failed to create directory for mesh file");
+		return;
+	}
+
 	// Validate mesh data
 	if (!newMesh || !newMesh->HasPositions() || !newMesh->HasNormals() ||
 		!newMesh->HasTextureCoords(0) || !newMesh->HasFaces())
@@ -140,7 +184,7 @@ void ModelImporter::SaveMeshToCustomFile(aiMesh* newMesh, const aiScene* scene, 
 			if (app->fileSystem->FileExists(basePath + texturePath.C_Str()))
 			{
 				diffuseTexturePath = basePath + texturePath.C_Str();
-				app->importer->ImportFile(diffuseTexturePath.c_str());
+				app->importer->ImportFile(diffuseTexturePath.c_str(), false);
 			}
 		}
 	}
@@ -195,54 +239,111 @@ void ModelImporter::SaveMeshToCustomFile(aiMesh* newMesh, const aiScene* scene, 
 
 Mesh* ModelImporter::LoadMeshFromCustomFile(const std::string& filePath)
 {
-	std::ifstream file(filePath, std::ios::binary);
-	if (!file.is_open())
+	LOG(LogType::LOG_INFO, "Attempting to load mesh from: %s", filePath.c_str());
+
+	if (!std::filesystem::exists(filePath))
+	{
+		LOG(LogType::LOG_ERROR, "Mesh file does not exist: %s", filePath.c_str());
+		return nullptr;
+	}
+
+	std::ifstream meshFile(filePath, std::ios::binary);
+	if (!meshFile.is_open())
 	{
 		LOG(LogType::LOG_ERROR, "Failed to open file for loading data.");
 		return nullptr;
 	}
 
-	uint32_t ranges[4] = { 0,0,0,0 };
-	file.read(reinterpret_cast<char*>(ranges), sizeof(ranges));
-
+	// Crear un nuevo mesh
 	Mesh* mesh = new Mesh();
-	mesh->indicesCount = ranges[0];
-	mesh->verticesCount = ranges[1];
-	mesh->normalsCount = ranges[2];
-	mesh->texCoordsCount = ranges[3];
+	if (!mesh)
+	{
+		meshFile.close();
+		return nullptr;
+	}
 
-	// Indices
-	mesh->indices = new uint32_t[mesh->indicesCount];
-	file.read(reinterpret_cast<char*>(mesh->indices), sizeof(uint32_t) * mesh->indicesCount);
+	// Leer rangos
+	uint32_t ranges[4] = { 0, 0, 0, 0 };
+	if (meshFile.read(reinterpret_cast<char*>(ranges), sizeof(ranges)).fail())
+	{
+		LOG(LogType::LOG_ERROR, "Failed to read ranges");
+		delete mesh;
+		meshFile.close();
+		return nullptr;
+	}
 
-	// Vertices
-	mesh->vertices = new float[mesh->verticesCount * 3];
-	file.read(reinterpret_cast<char*>(mesh->vertices), sizeof(float) * mesh->verticesCount * 3);
+	// Verificar rangos
+	if (ranges[0] == 0 || ranges[1] == 0 || ranges[2] == 0 || ranges[3] == 0)
+	{
+		LOG(LogType::LOG_ERROR, "Invalid ranges in file");
+		delete mesh;
+		meshFile.close();
+		return nullptr;
+	}
 
-	// Normals
-	mesh->normals = new float[mesh->normalsCount * 3];
-	file.read(reinterpret_cast<char*>(mesh->normals), sizeof(float) * mesh->normalsCount * 3);
+	try
+	{
+		// Asignar rangos
+		mesh->indicesCount = ranges[0];
+		mesh->verticesCount = ranges[1];
+		mesh->normalsCount = ranges[2];
+		mesh->texCoordsCount = ranges[3];
 
-	// Texture coords
-	mesh->texCoords = new float[mesh->texCoordsCount * 2];
-	file.read(reinterpret_cast<char*>(mesh->texCoords), sizeof(float) * mesh->texCoordsCount * 2);
+		// Asignar memoria
+		mesh->indices = new uint32_t[mesh->indicesCount];
+		mesh->vertices = new float[mesh->verticesCount * 3];
+		mesh->normals = new float[mesh->normalsCount * 3];
+		mesh->texCoords = new float[mesh->texCoordsCount * 2];
 
-	// Materials
-	file.read(reinterpret_cast<char*>(&mesh->diffuseColor), sizeof(glm::vec4));
-	file.read(reinterpret_cast<char*>(&mesh->specularColor), sizeof(glm::vec4));
-	file.read(reinterpret_cast<char*>(&mesh->ambientColor), sizeof(glm::vec4));
+		// Leer datos
+		if (meshFile.read(reinterpret_cast<char*>(mesh->indices), sizeof(uint32_t) * mesh->indicesCount).fail() ||
+			meshFile.read(reinterpret_cast<char*>(mesh->vertices), sizeof(float) * mesh->verticesCount * 3).fail() ||
+			meshFile.read(reinterpret_cast<char*>(mesh->normals), sizeof(float) * mesh->normalsCount * 3).fail() ||
+			meshFile.read(reinterpret_cast<char*>(mesh->texCoords), sizeof(float) * mesh->texCoordsCount * 2).fail())
+		{
+			throw std::runtime_error("Failed to read mesh data");
+		}
 
-	// Texture
-	uint32_t texturePathLength = 0;
-	file.read(reinterpret_cast<char*>(&texturePathLength), sizeof(uint32_t));
-	mesh->diffuseTexturePath.resize(texturePathLength);
-	file.read(&mesh->diffuseTexturePath[0], texturePathLength);
+		// Leer colores
+		if (meshFile.read(reinterpret_cast<char*>(&mesh->diffuseColor), sizeof(glm::vec4)).fail() ||
+			meshFile.read(reinterpret_cast<char*>(&mesh->specularColor), sizeof(glm::vec4)).fail() ||
+			meshFile.read(reinterpret_cast<char*>(&mesh->ambientColor), sizeof(glm::vec4)).fail())
+		{
+			throw std::runtime_error("Failed to read material colors");
+		}
 
-	file.close();
+		// Leer texture path
+		uint32_t texturePathLength = 0;
+		if (meshFile.read(reinterpret_cast<char*>(&texturePathLength), sizeof(uint32_t)).fail())
+		{
+			throw std::runtime_error("Failed to read texture path length");
+		}
 
-	mesh->InitMesh();
+		if (texturePathLength > 0)
+		{
+			std::vector<char> tempBuffer(texturePathLength + 1, 0);
+			if (meshFile.read(tempBuffer.data(), texturePathLength).fail())
+			{
+				throw std::runtime_error("Failed to read texture path");
+			}
+			mesh->diffuseTexturePath = std::string(tempBuffer.data(), texturePathLength);
+		}
 
-	return mesh;
+		meshFile.close();
+
+		// Inicializar mesh
+		mesh->InitMesh();
+		LOG(LogType::LOG_INFO, "Mesh loaded successfully: %s", filePath.c_str());
+
+		return mesh;
+	}
+	catch (const std::exception& e)
+	{
+		LOG(LogType::LOG_ERROR, "Exception while loading mesh: %s", e.what());
+		delete mesh;
+		meshFile.close();
+		return nullptr;
+	}
 }
 
 void ModelImporter::SaveModelToCustomFile(const aiScene* scene, const std::string& fileName)
@@ -339,55 +440,92 @@ void ModelImporter::SaveNodeToBuffer(const aiNode* node, std::vector<char>& buff
 
 void ModelImporter::LoadModelFromCustomFile(const std::string& filePath, GameObject* root)
 {
-	std::ifstream file(filePath, std::ios::binary);
-	if (!file.is_open())
-	{
-		LOG(LogType::LOG_ERROR, "Failed to open model file: %s", filePath.c_str());
-		return;
-	}
+	try {
+		LOG(LogType::LOG_INFO, "Loading model from: %s", filePath.c_str());
 
-	// Read file into buffer
-	file.seekg(0, std::ios::end);
-	size_t fileSize = file.tellg();
-	file.seekg(0, std::ios::beg);
-	std::vector<char> buffer(fileSize);
-	file.read(buffer.data(), fileSize);
-	file.close();
+		if (!root) {
+			LOG(LogType::LOG_ERROR, "Invalid root GameObject");
+			return;
+		}
 
-	size_t currentPos = 0;
+		std::ifstream file(filePath, std::ios::binary);
+		if (!file.is_open()) {
+			LOG(LogType::LOG_ERROR, "Failed to open model file: %s", filePath.c_str());
+			return;
+		}
 
-	// Meshes number
-	uint32_t numMeshes;
-	memcpy(&numMeshes, buffer.data() + currentPos, sizeof(uint32_t));
-	currentPos += sizeof(uint32_t);
+		// Leer el archivo en un buffer
+		file.seekg(0, std::ios::end);
+		size_t fileSize = file.tellg();
+		file.seekg(0, std::ios::beg);
 
-	// Load meshes
-	std::vector<Mesh*> meshes;
-	for (uint32_t i = 0; i < numMeshes; i++)
-	{
-		// Mesh path
-		uint32_t pathLength;
-		memcpy(&pathLength, buffer.data() + currentPos, sizeof(uint32_t));
+		if (fileSize == 0) {
+			LOG(LogType::LOG_ERROR, "Model file is empty");
+			file.close();
+			return;
+		}
+
+		std::vector<char> buffer(fileSize);
+		if (!file.read(buffer.data(), fileSize)) {
+			LOG(LogType::LOG_ERROR, "Failed to read model file");
+			file.close();
+			return;
+		}
+		file.close();
+
+		size_t currentPos = 0;
+
+		// Número de meshes
+		uint32_t numMeshes = 0;
+		if (currentPos + sizeof(uint32_t) > buffer.size()) {
+			LOG(LogType::LOG_ERROR, "Invalid file format: can't read number of meshes");
+			return;
+		}
+		memcpy(&numMeshes, buffer.data() + currentPos, sizeof(uint32_t));
 		currentPos += sizeof(uint32_t);
 
-		std::string meshPath(buffer.data() + currentPos, static_cast<size_t>(pathLength));
-		currentPos += static_cast<size_t>(pathLength) + 1;
+		LOG(LogType::LOG_INFO, "Model contains %d meshes", numMeshes);
 
-		// Load mesh from file
-		Mesh* mesh = LoadMeshFromCustomFile(meshPath);
-		if (mesh)
-		{
-			meshes.push_back(mesh);
+		// Cargar meshes
+		std::vector<Mesh*> meshes;
+		for (uint32_t i = 0; i < numMeshes && currentPos < buffer.size(); i++) {
+			// Leer longitud del path
+			uint32_t pathLength = 0;
+			if (currentPos + sizeof(uint32_t) > buffer.size()) break;
+
+			memcpy(&pathLength, buffer.data() + currentPos, sizeof(uint32_t));
+			currentPos += sizeof(uint32_t);
+
+			if (currentPos + pathLength + 1 > buffer.size()) break;
+
+			std::string meshPath(buffer.data() + currentPos, pathLength);
+			currentPos += pathLength + 1;
+
+			LOG(LogType::LOG_INFO, "Loading mesh %d/%d: %s", i + 1, numMeshes, meshPath.c_str());
+
+			// Cargar mesh desde archivo
+			Mesh* mesh = LoadMeshFromCustomFile(meshPath);
+			if (mesh) {
+				meshes.push_back(mesh);
+			}
 		}
+
+		if (meshes.empty()) {
+			LOG(LogType::LOG_WARNING, "No meshes were loaded successfully");
+			return;
+		}
+
+		// Obtener nombre del archivo
+		std::string fileName = filePath;
+		fileName = fileName.substr(fileName.find_last_of("/\\") + 1);
+		fileName = fileName.substr(0, fileName.find_last_of("."));
+
+		// Cargar nodo raíz
+		LoadNodeFromBuffer(buffer.data(), currentPos, meshes, root, fileName.c_str());
 	}
-
-	// Get file name
-	std::string fileName = filePath;
-	fileName = fileName.substr(fileName.find_last_of("/\\") + 1);
-	fileName = fileName.substr(0, fileName.find_last_of("."));
-
-	// Load root node
-	LoadNodeFromBuffer(buffer.data(), currentPos, meshes, root, fileName.c_str());
+	catch (const std::exception& e) {
+		LOG(LogType::LOG_ERROR, "Exception in LoadModelFromCustomFile: %s", e.what());
+	}
 }
 
 void ModelImporter::LoadNodeFromBuffer(const char* buffer, size_t& currentPos, std::vector<Mesh*>& meshes, GameObject* parent, const char* fileName)

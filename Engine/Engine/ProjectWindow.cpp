@@ -378,8 +378,22 @@ void ProjectWindow::DrawMenuBar()
 			std::string selectedFile = app->fileSystem->OpenFileDialog(filter);
 			if (!selectedFile.empty())
 			{
-				app->importer->ImportFile(selectedFile);
-				UpdateDirectoryContent();
+				if (app->fileSystem->FileExists(selectedFile))
+				{
+					if (app->importer->ImportFile(selectedFile, false))
+					{
+						LOG(LogType::LOG_INFO, "File imported successfully: %s", selectedFile.c_str());
+						UpdateDirectoryContent();
+					}
+					else
+					{
+						LOG(LogType::LOG_ERROR, "Failed to import file: %s", selectedFile.c_str());
+					}
+				}
+				else
+				{
+					LOG(LogType::LOG_ERROR, "File not found: %s", selectedFile.c_str());
+				}
 			}
 		}
 

@@ -21,93 +21,158 @@ ModuleRenderer3D::~ModuleRenderer3D()
 
 bool ModuleRenderer3D::Awake()
 {
-	bool ret = true;
+    LOG(LogType::LOG_INFO, "ModuleRenderer3D Awake - Starting");
+    bool ret = true;
 
-	GLenum err = glewInit();
-	if (err != GLEW_OK) {
-		LOG(LogType::LOG_ERROR, "Error in loading Glew: %s\n", glewGetErrorString(err));
-	}
-	else {
-		LOG(LogType::LOG_INFO, "Successfully using Glew %s", glewGetString(GLEW_VERSION));
-	}
+    GLenum err = glewInit();
+    if (err != GLEW_OK) {
+        LOG(LogType::LOG_ERROR, "Error in loading Glew: %s\n", glewGetErrorString(err));
+    }
+    else {
+        LOG(LogType::LOG_INFO, "Successfully using Glew %s", glewGetString(GLEW_VERSION));
+    }
 
-	if (ret == true)
-	{
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
+    if (ret == true)
+    {
+        LOG(LogType::LOG_INFO, "Setting up OpenGL");
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
 
-		GLenum error = glGetError();
-		if (error != GL_NO_ERROR)
-		{
-			LOG(LogType::LOG_ERROR, "Error initializing OpenGL! %s\n", gluErrorString(error));
-			ret = false;
-		}
+        GLenum error = glGetError();
+        if (error != GL_NO_ERROR)
+        {
+            LOG(LogType::LOG_ERROR, "Error initializing OpenGL! %s\n", gluErrorString(error));
+            ret = false;
+        }
 
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
 
-		error = glGetError();
-		if (error != GL_NO_ERROR)
-		{
-			LOG(LogType::LOG_ERROR, "Error initializing OpenGL! %s\n", gluErrorString(error));
-			ret = false;
-		}
+        error = glGetError();
+        if (error != GL_NO_ERROR)
+        {
+            LOG(LogType::LOG_ERROR, "Error initializing OpenGL! %s\n", gluErrorString(error));
+            ret = false;
+        }
 
-		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-		glClearDepth(1.0f);
+        glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+        glClearDepth(1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.f);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		glClearColor(0.1f, 0.1f, 0.1f, 1.f);
+        error = glGetError();
+        if (error != GL_NO_ERROR)
+        {
+            LOG(LogType::LOG_ERROR, "Error initializing OpenGL! %s\n", gluErrorString(error));
+            ret = false;
+        }
 
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        GLfloat MaterialAmbient[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, MaterialAmbient);
 
-		error = glGetError();
-		if (error != GL_NO_ERROR)
-		{
-			LOG(LogType::LOG_ERROR, "Error initializing OpenGL! %s\n", gluErrorString(error));
-			ret = false;
-		}
+        GLfloat MaterialDiffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, MaterialDiffuse);
 
-		GLfloat MaterialAmbient[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, MaterialAmbient);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glEnable(GL_COLOR_MATERIAL);
+        glEnable(GL_TEXTURE_2D);
 
-		GLfloat MaterialDiffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, MaterialDiffuse);
+        ilutRenderer(ILUT_OPENGL);
+        LOG(LogType::LOG_INFO, "OpenGL setup completed");
+    }
 
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
-		glEnable(GL_COLOR_MATERIAL);
-		glEnable(GL_TEXTURE_2D);
+    LOG(LogType::LOG_INFO, "Creating checker texture");
+    for (int i = 0; i < CHECKERS_HEIGHT; i++) {
+        for (int j = 0; j < CHECKERS_WIDTH; j++) {
+            int c = ((((i & 0x8) == 0) ^ (((j & 0x8)) == 0))) * 255;
+            checkerImage[i][j][0] = (GLubyte)c;
+            checkerImage[i][j][1] = (GLubyte)c;
+            checkerImage[i][j][2] = (GLubyte)c;
+            checkerImage[i][j][3] = (GLubyte)255;
+        }
+    }
 
-		ilutRenderer(ILUT_OPENGL);
-	}
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glGenTextures(1, &checkerTextureId);
+    glBindTexture(GL_TEXTURE_2D, checkerTextureId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, CHECKERS_WIDTH, CHECKERS_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, checkerImage);
+    LOG(LogType::LOG_INFO, "Checker texture created successfully");
 
-	for (int i = 0; i < CHECKERS_HEIGHT; i++) {
-		for (int j = 0; j < CHECKERS_WIDTH; j++) {
-			int c = ((((i & 0x8) == 0) ^ (((j & 0x8)) == 0))) * 255;
-			checkerImage[i][j][0] = (GLubyte)c;
-			checkerImage[i][j][1] = (GLubyte)c;
-			checkerImage[i][j][2] = (GLubyte)c;
-			checkerImage[i][j][3] = (GLubyte)255;
-		}
-	}
+    // Comprobaciones del sistema de archivos e importación
+    LOG(LogType::LOG_INFO, "Starting file system checks");
+    bool validSystem = true;
 
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glGenTextures(1, &checkerTextureId);
-	glBindTexture(GL_TEXTURE_2D, checkerTextureId);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, CHECKERS_WIDTH, CHECKERS_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, checkerImage);
+    if (app == nullptr) {
+        LOG(LogType::LOG_ERROR, "App pointer is null");
+        validSystem = false;
+    }
+    else if (app->importer == nullptr) {
+        LOG(LogType::LOG_ERROR, "Importer is null");
+        validSystem = false;
+    }
+    else if (app->fileSystem == nullptr) {
+        LOG(LogType::LOG_ERROR, "FileSystem is null");
+        validSystem = false;
+    }
 
-	app->importer->ImportFile("Assets/Models/BakerHouse.fbx", true);
-	app->editor->selectedGameObject = app->scene->root->children[0];
+    if (validSystem)
+    {
+        LOG(LogType::LOG_INFO, "System validation passed, attempting to load StreetEnvironment_V01.fbx");
+        std::string modelPath = "Assets/Models/StreetEnvironment_V01.fbx";
 
-	CreateFramebuffer();
+        LOG(LogType::LOG_INFO, "Checking if file exists: %s", modelPath.c_str());
+        bool fileExists = app->fileSystem->FileExists(modelPath);
 
-	OnResize(SCREEN_WIDTH, SCREEN_HEIGHT);
+        if (fileExists)
+        {
+            LOG(LogType::LOG_INFO, "File found, attempting to import");
+            try {
+                bool importSuccess = app->importer->ImportFile(modelPath, true);
+                if (importSuccess)
+                {
+                    LOG(LogType::LOG_INFO, "Import successful, setting up scene hierarchy");
+                    if (app->scene && app->scene->root && !app->scene->root->children.empty())
+                    {
+                        app->editor->selectedGameObject = app->scene->root->children[0];
+                        LOG(LogType::LOG_INFO, "Scene hierarchy set up successfully");
+                    }
+                    else
+                    {
+                        LOG(LogType::LOG_ERROR, "Scene hierarchy not properly initialized");
+                        ret = false;
+                    }
+                }
+                else
+                {
+                    LOG(LogType::LOG_ERROR, "Failed to import StreetEnvironment_V01.fbx");
+                    ret = false;
+                }
+            }
+            catch (const std::exception& e) {
+                LOG(LogType::LOG_ERROR, "Exception during import: %s", e.what());
+                ret = false;
+            }
+        }
+        else
+        {
+            LOG(LogType::LOG_ERROR, "File not found: %s", modelPath.c_str());
+            ret = false;
+        }
+    }
 
-	return ret;
+    LOG(LogType::LOG_INFO, "Creating framebuffer");
+    CreateFramebuffer();
+
+    LOG(LogType::LOG_INFO, "Setting up screen size");
+    OnResize(SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    LOG(LogType::LOG_INFO, "ModuleRenderer3D Awake - Completed");
+    return ret;
 }
 
 bool ModuleRenderer3D::PreUpdate(float dt)

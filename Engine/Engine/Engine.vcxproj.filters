@@ -218,5 +218,8 @@
     <ClInclude Include="Mesh.h">
       <Filter>Sources\Resources</Filter>
     </ClInclude>
+    <ClInclude Include="Globals.h">
+      <Filter>Sources\Tools</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

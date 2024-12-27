@@ -33,7 +33,7 @@ public:
 	bool CleanUp();
 
 	void TryImportFile();
-	void ImportFile(const std::string& fileDir, bool addToScene = false);
+	bool ImportFile(const std::string& fileDir, bool addToScene);
 	void SetDraggedFile(const std::string& filePath);
 
 	Resource* ImportFileToLibrary(const std::string& fileDir, ResourceType type);
