@@ -154,26 +154,32 @@ void ComponentTransform::SetTransformMatrix(glm::float3 position, glm::quat rota
 
 void ComponentTransform::UpdateTransform()
 {
-	rotation = glm::quat(glm::vec3(glm::radians(eulerRotation.x), glm::radians(eulerRotation.y), glm::radians(eulerRotation.z)));
+	// Convertir rotación de Euler a quaternion
+	rotation = glm::quat(glm::radians(eulerRotation));
 
-	localTransform = glm::float4x4(1.0f);
+	// Construir matriz local
+	localTransform = glm::mat4(1.0f);
 	localTransform = glm::translate(localTransform, position);
 	localTransform *= glm::mat4_cast(rotation);
 	localTransform = glm::scale(localTransform, scale);
 
-	if (gameObject->parent != nullptr)
+	// Actualizar matriz global
+	if (gameObject->parent != nullptr && gameObject->parent->transform != nullptr)
 	{
-		ComponentTransform* parentTransform = gameObject->parent->transform;
-		globalTransform = parentTransform->globalTransform * localTransform;
+		globalTransform = gameObject->parent->transform->globalTransform * localTransform;
 	}
 	else
 	{
 		globalTransform = localTransform;
 	}
 
+	// Propagar cambios a hijos
 	for (auto child : gameObject->children)
 	{
-		child->transform->UpdateTransform();
+		if (child && child->transform)
+		{
+			child->transform->UpdateTransform();
+		}
 	}
 
 	updateTransform = false;

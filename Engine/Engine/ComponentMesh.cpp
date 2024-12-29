@@ -13,36 +13,59 @@ ComponentMesh::~ComponentMesh()
 
 void ComponentMesh::Update()
 {
-	ComponentTransform* transform = gameObject->transform;
+    ComponentTransform* transform = gameObject->transform;
 
-	if (transform != nullptr)
-	{
-		glPushMatrix();
-		glMultMatrixf(glm::value_ptr(transform->globalTransform));
-	}
+    if (transform != nullptr)
+    {
+        // Log para verificar los valores de transformación
+        LOG(LogType::LOG_INFO, "Applying transform to mesh - Position: (%f, %f, %f), Scale: (%f, %f, %f)",
+            transform->position.x, transform->position.y, transform->position.z,
+            transform->scale.x, transform->scale.y, transform->scale.z);
 
-	ComponentMaterial* material = gameObject->material;
+        // Asegurarse de que la matriz está actualizada
+        if (transform->updateTransform)
+        {
+            transform->UpdateTransform();
+        }
 
-	mesh->DrawMesh(
-		material->textureId,
-		app->editor->preferencesWindow->drawTextures,
-		app->editor->preferencesWindow->wireframe,
-		app->editor->preferencesWindow->shadedWireframe
-	);
+        // Guardar la matriz actual
+        glPushMatrix();
 
-	if (showVertexNormals || showFaceNormals)
-	{
-		mesh->DrawNormals(
-			showVertexNormals,
-			showFaceNormals,
-			app->editor->preferencesWindow->vertexNormalLength,
-			app->editor->preferencesWindow->faceNormalLength,
-			app->editor->preferencesWindow->vertexNormalColor,
-			app->editor->preferencesWindow->faceNormalColor
-		);
-	}
+        // Aplicar la transformación global
+        glMultMatrixf(glm::value_ptr(transform->globalTransform));
+    }
 
-	if (transform != nullptr) glPopMatrix();
+    ComponentMaterial* material = gameObject->material;
+    if (material != nullptr && mesh != nullptr)
+    {
+        mesh->DrawMesh(
+            material->textureId,
+            app->editor->preferencesWindow->drawTextures,
+            app->editor->preferencesWindow->wireframe,
+            app->editor->preferencesWindow->shadedWireframe
+        );
+
+        if (showVertexNormals || showFaceNormals)
+        {
+            mesh->DrawNormals(
+                showVertexNormals,
+                showFaceNormals,
+                app->editor->preferencesWindow->vertexNormalLength,
+                app->editor->preferencesWindow->faceNormalLength,
+                app->editor->preferencesWindow->vertexNormalColor,
+                app->editor->preferencesWindow->faceNormalColor
+            );
+        }
+    }
+    else
+    {
+        LOG(LogType::LOG_WARNING, "Mesh or Material is null!");
+    }
+
+    if (transform != nullptr)
+    {
+        glPopMatrix();
+    }
 }
 
 void ComponentMesh::OnEditor()

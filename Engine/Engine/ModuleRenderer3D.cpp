@@ -138,19 +138,47 @@ bool ModuleRenderer3D::Awake()
                     LOG(LogType::LOG_INFO, "Import successful, setting up scene hierarchy");
                     if (app->scene && app->scene->root && !app->scene->root->children.empty())
                     {
-                        app->editor->selectedGameObject = app->scene->root->children[0];
+                        GameObject* streetEnv = app->scene->root->children[0];
+
+                        if (streetEnv && streetEnv->transform)
+                        {
+                            // Valores iniciales
+                            glm::vec3 initialPosition(0.0f); // o la posición que necesites
+                            glm::vec3 initialScale(0.1f);   // reducir a 10% del tamaño original
+
+                            // Crear rotación de -90 grados en X
+                            glm::vec3 initialRotationEuler(-90.0f, 0.0f, 0.0f);
+                            glm::quat initialRotation = glm::quat(glm::radians(initialRotationEuler));
+
+                            LOG(LogType::LOG_INFO, "Setting initial transform - Scale: (%f, %f, %f)",
+                                initialScale.x, initialScale.y, initialScale.z);
+
+                            // Aplicar transformación
+                            streetEnv->transform->SetTransformMatrix(
+                                initialPosition,
+                                initialRotation,
+                                initialScale,
+                                nullptr  // no parent transform
+                            );
+
+                            // Forzar actualización
+                            streetEnv->transform->updateTransform = true;
+                            streetEnv->transform->UpdateTransform();
+
+                            // Verificar que se aplicó
+                            LOG(LogType::LOG_INFO, "Transform applied - Final Scale: (%f, %f, %f)",
+                                streetEnv->transform->scale.x,
+                                streetEnv->transform->scale.y,
+                                streetEnv->transform->scale.z);
+                        }
+                        else
+                        {
+                            LOG(LogType::LOG_ERROR, "GameObject or Transform is null!");
+                        }
+
+                        app->editor->selectedGameObject = streetEnv;
                         LOG(LogType::LOG_INFO, "Scene hierarchy set up successfully");
                     }
-                    else
-                    {
-                        LOG(LogType::LOG_ERROR, "Scene hierarchy not properly initialized");
-                        ret = false;
-                    }
-                }
-                else
-                {
-                    LOG(LogType::LOG_ERROR, "Failed to import StreetEnvironment_V01.fbx");
-                    ret = false;
                 }
             }
             catch (const std::exception& e) {
