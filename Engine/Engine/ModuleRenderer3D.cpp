@@ -142,38 +142,23 @@ bool ModuleRenderer3D::Awake()
 
                         if (streetEnv && streetEnv->transform)
                         {
-                            // Valores iniciales
-                            glm::vec3 initialPosition(0.0f); // o la posición que necesites
-                            glm::vec3 initialScale(0.1f);   // reducir a 10% del tamaño original
-
-                            // Crear rotación de -90 grados en X
-                            glm::vec3 initialRotationEuler(-90.0f, 0.0f, 0.0f);
+                            // Configuración inicial del modelo
+                            glm::vec3 initialPosition(0.0f);
+                            glm::vec3 initialScale(0.1f);    // 10% del tamaño original
+                            glm::vec3 initialRotationEuler(-90.0f, 0.0f, 0.0f);  // Corregir orientación
                             glm::quat initialRotation = glm::quat(glm::radians(initialRotationEuler));
 
-                            LOG(LogType::LOG_INFO, "Setting initial transform - Scale: (%f, %f, %f)",
-                                initialScale.x, initialScale.y, initialScale.z);
-
-                            // Aplicar transformación
+                            // Aplicar transformación inicial
                             streetEnv->transform->SetTransformMatrix(
                                 initialPosition,
                                 initialRotation,
                                 initialScale,
-                                nullptr  // no parent transform
+                                nullptr
                             );
 
-                            // Forzar actualización
+                            // Asegurar que la transformación se actualiza
                             streetEnv->transform->updateTransform = true;
                             streetEnv->transform->UpdateTransform();
-
-                            // Verificar que se aplicó
-                            LOG(LogType::LOG_INFO, "Transform applied - Final Scale: (%f, %f, %f)",
-                                streetEnv->transform->scale.x,
-                                streetEnv->transform->scale.y,
-                                streetEnv->transform->scale.z);
-                        }
-                        else
-                        {
-                            LOG(LogType::LOG_ERROR, "GameObject or Transform is null!");
                         }
 
                         app->editor->selectedGameObject = streetEnv;
