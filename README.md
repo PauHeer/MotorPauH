@@ -23,6 +23,7 @@ Es un motor de videojuegos 3D en desarrollo en **C++** con **OpenGL**, capaz de 
 - **Modos de sombreado**: cambia entre las opciones Sombreado, Estructura alámbrica y Estructura alámbrica sombreada.
 - **Monitor del motor**: visualiza la información de monitoreo.
 - **Biblioteca de archivos personalizados**: administra archivos con un formato de archivo personalizado.
+- **Opciones Play/Stop/Save State**
 
 ## Paneles
 - **Jerarquía**: muestra los objetos del juego presentes actualmente en la escena. Incluye una función de búsqueda para localizar objetos específicos del juego y brinda opciones para crear objetos de juego vacíos y formas primitivas básicas.

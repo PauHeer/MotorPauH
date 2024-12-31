@@ -15,6 +15,10 @@ public:
 	bool FilterNode(GameObject* node, const char* searchText);
 
 private:
+	void DeleteSelectedGameObject();
+	void DeleteGameObjectRecursive(GameObject* gameObject);
+	bool IsGameObjectValid(GameObject* gameObject) const;  // Nueva función de validación
+
 	char searchInput[256] = "";
 	char inputName[256] = "GameObject";
 	ImGuiInputTextFlags inputTextFlags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll;

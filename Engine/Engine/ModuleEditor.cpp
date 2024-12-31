@@ -50,8 +50,6 @@ bool ModuleEditor::Awake()
 	editorWindows.push_back(performanceWindow);
 	preferencesWindow = new PreferencesWindow(WindowType::PREFERENCES, "Preferences");
 	editorWindows.push_back(preferencesWindow);
-	aboutWindow = new AboutWindow(WindowType::ABOUT, "About");
-	editorWindows.push_back(aboutWindow);
 
 	return ret;
 }
@@ -160,6 +158,7 @@ void ModuleEditor::MainMenuBar()
 		}
 		ImGui::EndMenu();
 	}
+
 	if (ImGui::BeginMenu("GameObject"))
 	{
 		if (ImGui::MenuItem("Create Empty"))
@@ -193,6 +192,7 @@ void ModuleEditor::MainMenuBar()
 		}
 		ImGui::EndMenu();
 	}
+
 	if (ImGui::BeginMenu("Windows"))
 	{
 		int index = 1;
@@ -204,6 +204,24 @@ void ModuleEditor::MainMenuBar()
 				editorWindow->SetEnabled(isEnabled);
 			}
 			++index;
+		}
+		ImGui::EndMenu();
+	}
+
+	// Adding Play, Stop, and Save State buttons
+	if (ImGui::BeginMenu("Game"))
+	{
+		if (ImGui::MenuItem("Play"))
+		{
+			app->Play();
+		}
+		if (ImGui::MenuItem("Stop"))
+		{
+			app->Stop();
+		}
+		if (ImGui::MenuItem("Save State"))
+		{
+			app->SaveGameState();
 		}
 		ImGui::EndMenu();
 	}

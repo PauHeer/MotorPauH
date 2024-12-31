@@ -66,29 +66,42 @@ void ModuleImporter::TryImportFile()
 	isDraggingFile = false;
 }
 
-void ModuleImporter::ImportFile(const std::string& fileDir, bool addToScene)
+bool ModuleImporter::ImportFile(const std::string& fileDir, bool addToScene)
 {
-	std::string extension = app->fileSystem->GetExtension(fileDir);
+	if (fileDir.empty())
+	{
+		LOG(LogType::LOG_ERROR, "Empty file path provided");
+		return false;
+	}
 
+	std::string extension = app->fileSystem->GetExtension(fileDir);
 	bool isValidFile = extension == "fbx" || extension == "png" || extension == "dds";
 
 	if (!isValidFile)
 	{
 		LOG(LogType::LOG_WARNING, "File format not supported");
-		return;
+		return false;
 	}
 
 	std::string newDir = app->fileSystem->CopyFileIfNotExists(fileDir);
-
 	ResourceType resourceType = app->resources->GetResourceTypeFromExtension(extension);
-
 	Resource* newResource = app->resources->FindResourceInLibrary(newDir, resourceType);
 
 	if (!newResource)
 		newResource = ImportFileToLibrary(newDir, resourceType);
 
+	if (newResource == nullptr)
+	{
+		LOG(LogType::LOG_ERROR, "Failed to create or find resource");
+		return false;
+	}
+
 	if (addToScene)
+	{
 		LoadToScene(newResource, resourceType);
+	}
+
+	return true;
 }
 
 void ModuleImporter::LoadToScene(Resource* newResource, ResourceType resourceType)

@@ -15,21 +15,26 @@
 class ModelImporter
 {
 public:
-	ModelImporter();
-	~ModelImporter();
+    ModelImporter();
+    ~ModelImporter();
 
-	bool SaveModel(Resource* resource);
-	bool LoadModel(Resource* resource, GameObject* root);
+    // Main public interface
+    bool SaveModel(Resource* resource);
+    bool LoadModel(Resource* resource, GameObject* root);
 
 private:
-	// Save functions
-	void SaveMeshToCustomFile(aiMesh* mesh, const aiScene* scene, const std::string& filePath);
-	void SaveModelToCustomFile(const aiScene* scene, const std::string& outputPath);
-	void SaveNodeToBuffer(const aiNode* node, std::vector<char>& buffer, size_t& currentPos);
-	size_t CalculateNodeSize(const aiNode* node);
+    // Model saving functions
+    void SaveModelToCustomFile(const aiScene* scene, const std::string& fileName);
+    void SaveNodeToBuffer(const aiNode* node, std::vector<char>& buffer, size_t& currentPos);
+    void SaveMeshToCustomFile(aiMesh* mesh, const aiScene* scene, const std::string& filePath);
 
-	// Loading functions
-	Mesh* LoadMeshFromCustomFile(const std::string& filePath);
-	void LoadModelFromCustomFile(const std::string& filePath, GameObject* root);
-	void LoadNodeFromBuffer(const char* buffer, size_t& currentPos, std::vector<Mesh*>& meshes, GameObject* parent, const char* fileName);
+    // Model loading functions
+    void LoadModelFromCustomFile(const std::string& filePath, GameObject* root);
+    void LoadNodeFromBuffer(const char* buffer, size_t& currentPos,
+        std::vector<Mesh*>& meshes, GameObject* parent,
+        const char* fileName);
+    Mesh* LoadMeshFromCustomFile(const std::string& filePath);
+
+    // Utility functions
+    size_t CalculateNodeSize(const aiNode* node);
 };
