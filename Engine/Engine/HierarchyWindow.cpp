@@ -11,11 +11,121 @@ HierarchyWindow::~HierarchyWindow()
 {
 }
 
+void HierarchyWindow::DeleteSelectedGameObject()
+{
+	GameObject* objectToDelete = app->editor->selectedGameObject;
+
+	// Validaciones de seguridad
+	if (!IsGameObjectValid(objectToDelete) || !IsGameObjectValid(objectToDelete->parent))
+	{
+		app->editor->selectedGameObject = nullptr;
+		return;
+	}
+
+	if (objectToDelete == app->scene->root)
+	{
+		return; // No permitimos borrar el root
+	}
+
+	// Guardamos una referencia al padre antes de borrar
+	GameObject* parent = objectToDelete->parent;
+
+	// Limpiamos la selección antes de borrar
+	app->editor->selectedGameObject = nullptr;
+
+	// Encuentra y elimina el objeto de la lista de hijos del padre
+	if (parent)
+	{
+		auto& parentChildren = parent->children;
+		auto it = std::find(parentChildren.begin(), parentChildren.end(), objectToDelete);
+		if (it != parentChildren.end())
+		{
+			parentChildren.erase(it);
+		}
+	}
+
+	// Elimina el objeto y sus hijos recursivamente
+	DeleteGameObjectRecursive(objectToDelete);
+}
+
+void HierarchyWindow::DeleteGameObjectRecursive(GameObject* gameObject)
+{
+	if (!IsGameObjectValid(gameObject))
+	{
+		return;
+	}
+
+	// Creamos una copia de la lista de hijos ya que la vamos a modificar
+	std::vector<GameObject*> children = gameObject->children;
+
+	// Limpiamos la lista de hijos original para evitar problemas de memoria
+	gameObject->children.clear();
+
+	// Eliminamos recursivamente todos los hijos
+	for (auto* child : children)
+	{
+		if (IsGameObjectValid(child))
+		{
+			DeleteGameObjectRecursive(child);
+		}
+	}
+
+	// Eliminamos los componentes
+	for (auto* component : gameObject->components)
+	{
+		if (component)
+		{
+			delete component;
+		}
+	}
+	gameObject->components.clear();
+
+	// Limpiamos las referencias antes de eliminar
+	gameObject->parent = nullptr;
+	gameObject->transform = nullptr;  // Ya se eliminó en el bucle de componentes
+	gameObject->mesh = nullptr;       // Ya se eliminó en el bucle de componentes
+	gameObject->material = nullptr;   // Ya se eliminó en el bucle de componentes
+
+	// Finalmente eliminamos el GameObject
+	delete gameObject;
+}
+
+bool HierarchyWindow::IsGameObjectValid(GameObject* gameObject) const
+{
+	if (gameObject == nullptr)
+		return false;
+
+	// Verificación básica de dirección de memoria
+	if (reinterpret_cast<uintptr_t>(gameObject) < 0x1000)
+		return false;
+
+	try
+	{
+		// Intenta acceder a algunas propiedades básicas para verificar que el objeto es válido
+		volatile bool test = gameObject->isActive;
+		volatile auto name = gameObject->name;
+		return true;
+	}
+	catch (...)
+	{
+		return false;
+	}
+}
+
 void HierarchyWindow::DrawWindow()
 {
 	ImGui::Begin(name.c_str());
 
 	UpdateMouseState();
+
+	// Añade la detección de la tecla Supr aquí
+	if (app->editor->selectedGameObject != nullptr &&
+		app->editor->selectedGameObject != app->scene->root &&
+		ImGui::IsKeyPressed(ImGuiKey_Delete) &&
+		ImGui::IsWindowFocused())
+	{
+		DeleteSelectedGameObject();
+	}
 
 	if (ImGui::Button("+", ImVec2(20, 20)))
 	{

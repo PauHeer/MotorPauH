@@ -11,6 +11,14 @@ GameObject::GameObject(const char* name, GameObject* parent) : parent(parent), n
 
 GameObject::~GameObject()
 {
+	// No eliminamos los componentes aquí, eso se hace en DeleteGameObjectRecursive
+	components.clear();
+	children.clear();
+
+	parent = nullptr;
+	transform = nullptr;
+	mesh = nullptr;
+	material = nullptr;
 }
 
 void GameObject::Update()
