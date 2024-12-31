@@ -1,3 +1,7 @@
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "ModelImporter.h"
 #include "App.h"
 #include "ComponentMesh.h"
@@ -527,81 +531,81 @@ void ModelImporter::LoadModelFromCustomFile(const std::string& filePath, GameObj
     }
 }
 
-void ModelImporter::LoadNodeFromBuffer(const char* buffer, size_t& currentPos,
-    std::vector<Mesh*>& meshes, GameObject* parent,
-    const char* fileName) {
-    try {
-        // Read node name
-        uint32_t nameLength;
-        memcpy(&nameLength, buffer + currentPos, sizeof(uint32_t));
-        currentPos += sizeof(uint32_t);
 
-        std::string nodeName(buffer + currentPos, nameLength);
-        currentPos += nameLength + 1;
+void ModelImporter::LoadNodeFromBuffer(const char* buffer, size_t& currentPos, std::vector<Mesh*>& meshes, GameObject* parent, const char* fileName)
+{
+    // Node name
+    uint32_t nameLength;
+    memcpy(&nameLength, buffer + currentPos, sizeof(uint32_t));
+    currentPos += sizeof(uint32_t);
 
-        // Read number of meshes
-        uint32_t numMeshes;
-        memcpy(&numMeshes, buffer + currentPos, sizeof(uint32_t));
-        currentPos += sizeof(uint32_t);
+    std::string nodeName(buffer + currentPos, static_cast<size_t>(nameLength));
+    currentPos += static_cast<size_t>(nameLength) + 1;
 
-        // Create GameObject if there are meshes
-        GameObject* gameObjectNode = nullptr;
-        if (numMeshes > 0) {
-            gameObjectNode = new GameObject(nodeName.c_str(), parent);
+    // Node meshes number
+    uint32_t numMeshes;
+    memcpy(&numMeshes, buffer + currentPos, sizeof(uint32_t));
+    currentPos += sizeof(uint32_t);
 
-            // Process meshes
-            for (uint32_t i = 0; i < numMeshes; i++) {
-                uint32_t meshIndex;
-                memcpy(&meshIndex, buffer + currentPos, sizeof(uint32_t));
-                currentPos += sizeof(uint32_t);
+    // Create GameObject if there are meshes
+    GameObject* gameObjectNode = nullptr;
+    if (numMeshes > 0)
+    {
+        gameObjectNode = new GameObject(nodeName.c_str(), parent);
 
-                if (meshIndex < meshes.size() && meshes[meshIndex]) {
-                    ComponentMesh* componentMesh = dynamic_cast<ComponentMesh*>(
-                        gameObjectNode->AddComponent(gameObjectNode->mesh));
+        // Process meshes
+        for (uint32_t i = 0; i < numMeshes; i++)
+        {
+            uint32_t meshIndex;
+            memcpy(&meshIndex, buffer + currentPos, sizeof(uint32_t));
+            currentPos += sizeof(uint32_t);
 
-                    if (componentMesh) {
-                        componentMesh->mesh = meshes[meshIndex];
+            if (meshIndex < meshes.size())
+            {
+                ComponentMesh* componentMesh = dynamic_cast<ComponentMesh*>(gameObjectNode->AddComponent(gameObjectNode->mesh));
+                componentMesh->mesh = meshes[meshIndex];
 
-                        if (!meshes[meshIndex]->diffuseTexturePath.empty()) {
-                            std::string extension = app->fileSystem->GetExtension(
-                                meshes[meshIndex]->diffuseTexturePath);
-                            ResourceType resourceType = app->resources->GetResourceTypeFromExtension(extension);
-                            Resource* newResource = app->resources->FindResourceInLibrary(
-                                meshes[meshIndex]->diffuseTexturePath, resourceType);
-
-                            if (newResource) {
-                                Texture* newTexture = app->importer->textureImporter->LoadTextureImage(newResource);
-                                if (newTexture) {
-                                    gameObjectNode->material->AddTexture(newTexture);
-                                }
-                            }
-                        }
-                    }
+                if (!meshes[meshIndex]->diffuseTexturePath.empty())
+                {
+                    std::string extension = app->fileSystem->GetExtension(meshes[meshIndex]->diffuseTexturePath);
+                    ResourceType resourceType = app->resources->GetResourceTypeFromExtension(extension);
+                    Resource* newResource = app->resources->FindResourceInLibrary(meshes[meshIndex]->diffuseTexturePath, resourceType);
+                    Texture* newTexture = app->importer->textureImporter->LoadTextureImage(newResource);
+                    if (newTexture != nullptr)
+                        gameObjectNode->material->AddTexture(newTexture);
                 }
             }
-
-            parent->children.push_back(gameObjectNode);
         }
 
-        // Read number of children
-        uint32_t numChildren;
-        memcpy(&numChildren, buffer + currentPos, sizeof(uint32_t));
-        currentPos += sizeof(uint32_t);
+        parent->children.push_back(gameObjectNode);
+    }
 
-        // Process children nodes
-        if (numChildren > 0) {
-            GameObject* holder = gameObjectNode ? gameObjectNode : new GameObject(fileName, parent);
-            if (!gameObjectNode) {
-                parent->children.push_back(holder);
-            }
+    uint32_t numChildren;
+    memcpy(&numChildren, buffer + currentPos, sizeof(uint32_t));
+    currentPos += sizeof(uint32_t);
 
-            for (uint32_t i = 0; i < numChildren; i++) {
-                LoadNodeFromBuffer(buffer, currentPos, meshes, holder, nodeName.c_str());
-            }
+    // Processs children nodes
+    if (numChildren > 0)
+    {
+        GameObject* holder = gameObjectNode ? gameObjectNode : new GameObject(fileName, parent);
+        if (!gameObjectNode)
+            parent->children.push_back(holder);
+
+        for (uint32_t i = 0; i < numChildren; i++)
+        {
+            LoadNodeFromBuffer(buffer, currentPos, meshes, holder, nodeName.c_str());
         }
     }
-    catch (const std::exception& e) {
-        LOG(LogType::LOG_ERROR, "Error processing node: %s", e.what());
+
+    // Read and apply the transformation matrix
+    aiMatrix4x4 transform;
+    memcpy(&transform, buffer + currentPos, sizeof(aiMatrix4x4));
+    currentPos += sizeof(aiMatrix4x4);
+
+    glm::mat4 glmTransform = glm::transpose(glm::make_mat4(&transform.a1));
+    if (gameObjectNode)
+    {
+        gameObjectNode->transform->SetMatrix(glmTransform);
     }
 }
 

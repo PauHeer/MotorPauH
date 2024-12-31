@@ -38,6 +38,7 @@ public:
 
 	Resource* ImportFileToLibrary(const std::string& fileDir, ResourceType type);
 	void LoadToScene(Resource* newResource, ResourceType resourceType);
+	void SetTransform(const glm::mat4& transform);
 
 public:
 	Icons icons;
@@ -48,4 +49,5 @@ public:
 
 private:
 	std::string draggedFile;
+	glm::mat4 transform;
 };
