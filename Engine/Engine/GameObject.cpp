@@ -1,62 +1,51 @@
 #include "GameObject.h"
+#include <iostream> // Para los logs
 
 GameObject::GameObject(const char* name, GameObject* parent) : parent(parent), name(name)
 {
-	transform = new ComponentTransform(this);
-	mesh = new ComponentMesh(this);
-	material = new ComponentMaterial(this);
+    transform = new ComponentTransform(this);
+    mesh = new ComponentMesh(this);
+    material = new ComponentMaterial(this);
 
-	AddComponent(transform);
+    AddComponent(transform);
 }
 
 GameObject::~GameObject()
 {
-	// No eliminamos los componentes aquí, eso se hace en DeleteGameObjectRecursive
-	components.clear();
-	children.clear();
-
-	parent = nullptr;
-	transform = nullptr;
-	mesh = nullptr;
-	material = nullptr;
+    std::cout << "Destroying GameObject: " << this << std::endl;
 }
 
 void GameObject::Update()
 {
-	if (isActive)
-	{
-		for (std::vector<Component*>::iterator it = components.begin(); it != components.end(); ++it)
-		{
-			(*it)->Update();
-		}
-		for (std::vector<GameObject*>::iterator it = children.begin(); it != children.end(); ++it)
-		{
-			(*it)->Update();
-		}
-	}
-}
-
-void GameObject::Enable()
-{
-}
-void GameObject::Disable()
-{
+    if (isActive)
+    {
+        for (auto* component : components)
+        {
+            component->Update();
+        }
+        for (auto* child : children)
+        {
+            child->Update();
+        }
+    }
 }
 
 Component* GameObject::AddComponent(Component* component)
 {
-	components.push_back(component);
+    components.push_back(component);
 
-	return component;
+    return component;
 }
 
 Component* GameObject::GetComponent(ComponentType type)
 {
-	for (auto it = components.begin(); it != components.end(); ++it) {
-		if ((*it)->type == type) {
-			return (*it);
-		}
-	}
+    for (auto* component : components)
+    {
+        if (component->type == type)
+        {
+            return component;
+        }
+    }
 
-	return nullptr;
+    return nullptr;
 }
